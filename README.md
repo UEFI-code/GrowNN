@@ -1,3 +1,3 @@
-# Groupable Neural Network
+# Growable Neural Network
 ## Credit: UEFI & Cookie
 ## Secret
