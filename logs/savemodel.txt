@@ -1,0 +1,1 @@
+Get Better top1 : 26.151315789473685 saving weights to ./checkpoints/savemodel.pth

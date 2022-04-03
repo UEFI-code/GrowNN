@@ -70,6 +70,7 @@ if __name__ == '__main__' :
     train_loss = []
     acc = []
     test_loss = []
+    totalAddCells = 0
     #model.li0_group.append(nn.Linear(128,128))
     #new_weight = model.li0_group[len(model.li0_group)-1].weight * 0
     #new_bias = model.li0_group[len(model.li0_group)-1].bias * 0
@@ -98,6 +99,7 @@ if __name__ == '__main__' :
                 for j in range(len(li0_dat[i][0])):
                     if li0_dat[i][0][j] > 0.7 or li0_dat[i][0][j] < 0 - 0.7 :
                         #Found this Nerve so tired
+                        totalAddCells += 1
                         exp_weight = model.li0_group[i].weight.tolist()
                         exp_bias = model.li0_group[i].bias.tolist()
                         for k in range(len(exp_weight[j])):
@@ -142,6 +144,7 @@ if __name__ == '__main__' :
                 for j in range(len(li1_dat[i][0])):
                     if li1_dat[i][0][j] > 0.7 or li0_dat[i][0][j] < 0 - 0.7 :
                         #Found this Nerve so tired
+                        totalAddCells += 1
                         exp_weight = model.li1_group[i].weight.tolist()
                         exp_bias = model.li1_group[i].bias.tolist()
                         for k in range(len(exp_weight[j])):
@@ -185,6 +188,7 @@ if __name__ == '__main__' :
                 for j in range(len(li2_dat[i][0])):
                     if li2_dat[i][0][j] > 0.7 or li0_dat[i][0][j] < 0 - 0.7 :
                         #Found this Nerve so tired
+                        totalAddCells += 1
                         exp_weight = model.li2_group[i].weight.tolist()
                         exp_bias = model.li2_group[i].bias.tolist()
                         for k in range(len(exp_weight[j])):
@@ -225,6 +229,7 @@ if __name__ == '__main__' :
                             print('Append to Linear 2, now %d layers' % len(model.li2_group))
             if (index+1) % 10 == 0:
                 print("Epoch: {} [{:>3d}/{}]\t Loss: {:.6f} ".format(epoch+1,index*config.batch_size,len(train_loader.dataset),loss.item()))
+                print("Total added " + str(totalAddCells) + " cells")
         if (epoch+1) % 1 ==0:
             print("\n------ Evaluate ------")
             model.eval()
