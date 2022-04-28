@@ -12,26 +12,17 @@ from test import *
 from utils.utils import*
 
 def getModelPara(model):
-    model.layera.zero_grad()
-    model.layerb.zero_grad()
-    model.layerc.zero_grad()
     params = list(model.layera.parameters()) + list(model.layerb.parameters()) + list(model.layerc.parameters())
     for i in model.li0_group:
-        i.zero_grad()
         params += list(i.parameters())
     for i in model.li1_group:
-        i.zero_grad()
         params += list(i.parameters())
     for i in model.li2_group:
-        i.zero_grad()
         params += list(i.parameters())
-    model.li3.zero_grad()
     params += list(model.li3.parameters())
     return params
 
 if __name__ == '__main__' :
-    if not os.path.exists(config.example_folder):
-        os.mkdir(config.example_folder)
     if not os.path.exists(config.weights):
         os.mkdir(config.weights)
     if not os.path.exists(config.logs):
@@ -40,9 +31,9 @@ if __name__ == '__main__' :
     if torch.cuda.is_available():
         model = model.cuda()
     torch.autograd.set_detect_anomaly(True)
-    optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=0.9, weight_decay=config.weight_decay)
     criterion = nn.CrossEntropyLoss().cuda()
-
+    optimizer = optim.SGD(getModelPara(model), lr=config.lr, momentum=0.9, weight_decay=config.weight_decay)
+    optimizer.zero_grad()
     start_epoch = 0
     current_accuracy = 0
     resume = False
@@ -82,8 +73,7 @@ if __name__ == '__main__' :
         config.lr = lr_step(epoch)
         loss_epoch = 0
         for index,(input,target) in enumerate(train_loader):
-            optimizer = optim.SGD(getModelPara(model), lr=config.lr, momentum=0.9, weight_decay=config.weight_decay)
-            optimizer.zero_grad()
+            need_rst_optim = False
             input = Variable(input).cuda()
             target = Variable(torch.from_numpy(np.array(target)).long()).cuda()
             output, li0_dat, li1_dat, li2_dat = model(input)
@@ -99,6 +89,7 @@ if __name__ == '__main__' :
                 for j in range(len(li0_dat[i][0])):
                     if li0_dat[i][0][j] > 0.7 or li0_dat[i][0][j] < 0 - 0.7 :
                         #Found this Nerve so tired
+                        need_rst_optim = True
                         totalAddCells += 1
                         exp_weight = model.li0_group[i].weight.tolist()
                         exp_bias = model.li0_group[i].bias.tolist()
@@ -142,8 +133,9 @@ if __name__ == '__main__' :
             #Check li1!
             for i in range(len(li1_dat)) :
                 for j in range(len(li1_dat[i][0])):
-                    if li1_dat[i][0][j] > 0.7 or li0_dat[i][0][j] < 0 - 0.7 :
+                    if li1_dat[i][0][j] > 0.7 or li1_dat[i][0][j] < 0 - 0.7 :
                         #Found this Nerve so tired
+                        need_rst_optim = True
                         totalAddCells += 1
                         exp_weight = model.li1_group[i].weight.tolist()
                         exp_bias = model.li1_group[i].bias.tolist()
@@ -186,8 +178,9 @@ if __name__ == '__main__' :
             #Check li2!
             for i in range(len(li2_dat)) :
                 for j in range(len(li2_dat[i][0])):
-                    if li2_dat[i][0][j] > 0.7 or li0_dat[i][0][j] < 0 - 0.7 :
+                    if li2_dat[i][0][j] > 0.7 or li2_dat[i][0][j] < 0 - 0.7 :
                         #Found this Nerve so tired
+                        need_rst_optim = True
                         totalAddCells += 1
                         exp_weight = model.li2_group[i].weight.tolist()
                         exp_bias = model.li2_group[i].bias.tolist()
@@ -227,6 +220,9 @@ if __name__ == '__main__' :
                             model.li2_group[len(model.li2_group)-1].bias = nn.Parameter(torch.tensor(new_bias))
                             model.li2_group[len(model.li2_group)-1].zero_grad()
                             print('Append to Linear 2, now %d layers' % len(model.li2_group))
+            if need_rst_optim:
+                optimizer = optim.SGD(getModelPara(model), lr=config.lr, momentum=0.9, weight_decay=config.weight_decay)
+                optimizer.zero_grad()
             if (index+1) % 10 == 0:
                 print("Epoch: {} [{:>3d}/{}]\t Loss: {:.6f} ".format(epoch+1,index*config.batch_size,len(train_loader.dataset),loss.item()))
                 print("Total added " + str(totalAddCells) + " cells")
@@ -243,6 +239,7 @@ if __name__ == '__main__' :
             save_model = accTop1 > current_accuracy
             accTop1 = max(current_accuracy,accTop1)
             current_accuracy = accTop1
+            print("Best Accu = %f" % current_accuracy)
             save_checkpoint({
                 "epoch": epoch + 1,
                 "model_name": config.model_name,

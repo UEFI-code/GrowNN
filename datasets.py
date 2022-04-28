@@ -39,7 +39,7 @@ def get_files(file_dir,ratio):
     temp = np.array([image_list, labels_list]).transpose()
     np.random.shuffle(temp)
     n_test = int(math.ceil(len(temp) * ratio))
-    test_data = temp[0:n_test,:]
+    test_data = temp[0:n_test]
     train_data = temp[n_test:-1,:]
     return test_data,train_data
 

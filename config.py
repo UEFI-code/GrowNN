@@ -1,4 +1,3 @@
-#可以根据自己的情况进行修改
 class MyConfigs():
 
     data_folder = '../uefi/AccuEmoji/DataSet/train/l1/'
@@ -6,9 +5,7 @@ class MyConfigs():
     model_name = "savemodel" 
     weights = "./checkpoints/"
     logs = "./logs/"
-    example_folder = "./example/"
     freeze = True
-    #
     epochs = 9999991
     batch_size = 16
     img_height = 96  #网络输入的高和宽
