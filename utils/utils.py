@@ -1,4 +1,3 @@
-#This file include some functions
 from config import config
 import torch
 import os
@@ -13,7 +12,6 @@ def save_checkpoint(state, save_model):
         with open("./logs/%s.txt"%config.model_name,"a") as f:
             print("Get Better top1 : %s saving weights to %s"%(state["accTop1"],message),file=f)
 
-
 def accuracy(output,target,topk = (1, 5)):
     maxk = max(topk)
     batch_size = target.size(0)
@@ -25,7 +23,6 @@ def accuracy(output,target,topk = (1, 5)):
         correct_k = correct[:k].view(-1).float().sum(0,keepdim =True)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
-
 
 def lr_step(epoch):
     if epoch < 30:

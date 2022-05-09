@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from datasets import *
 from test import *
 from utils.utils import*
+import grow_chooser
 
 def getModelPara(model):
     params = list(model.layera.parameters()) + list(model.layerb.parameters()) + list(model.layerc.parameters())
@@ -33,7 +34,7 @@ if __name__ == '__main__' :
     torch.autograd.set_detect_anomaly(True)
     criterion = nn.CrossEntropyLoss().cuda()
     optimizer = optim.SGD(getModelPara(model), lr=config.lr, momentum=0.9, weight_decay=config.weight_decay)
-    optimizer.zero_grad()
+    GrowChooser = grow_chooser.Chooser(0.99)
     start_epoch = 0
     current_accuracy = 0
     resume = False
@@ -62,32 +63,43 @@ if __name__ == '__main__' :
     acc = []
     test_loss = []
     totalAddCells = 0
-    #model.li0_group.append(nn.Linear(128,128))
-    #new_weight = model.li0_group[len(model.li0_group)-1].weight * 0
-    #new_bias = model.li0_group[len(model.li0_group)-1].bias * 0
-    #model.li0_group[len(model.li0_group)-1].weight = nn.Parameter(new_weight)
-    #model.li0_group[len(model.li0_group)-1].bias = nn.Parameter(new_bias)
     print("------ Start Training ------\n")
     for epoch in range(start_epoch,config.epochs):
         model.train()
-        config.lr = lr_step(epoch)
         loss_epoch = 0
+        need_rst_optim = False
         for index,(input,target) in enumerate(train_loader):
-            need_rst_optim = False
             input = Variable(input).cuda()
             target = Variable(torch.from_numpy(np.array(target)).long()).cuda()
+            optimizer.zero_grad()
             output, li0_dat, li1_dat, li2_dat = model(input)
-            loss = criterion(output,target)
-            try: 
-                loss.backward()
-            except:
-                print('backward failed 233')
+            loss = criterion(output, target)
+            loss.backward()
             optimizer.step()
             loss_epoch += loss.item()
-            #Check li0!
-            for i in range(len(li0_dat)) :
-                for j in range(len(li0_dat[i][0])):
-                    if li0_dat[i][0][j] > 0.7 or li0_dat[i][0][j] < 0 - 0.7 :
+            if (index+1) % 10 == 0:
+                print("Epoch: {} [{:>3d}/{}]\t Loss: {:.6f} ".format(epoch+1,index*config.batch_size,len(train_loader.dataset),loss.item()))
+                print("Total added " + str(totalAddCells) + " cells")
+        
+        if (epoch+1) % 1 ==0:
+            print("\n------ Evaluate ------")
+            model.eval()
+            # evaluate the model on the test data
+            test_loss1, accTop1 = evaluate(test_loader,model,criterion)
+            acc.append(accTop1)
+            print("type(accTop1) =",type(accTop1))
+            test_loss.append(test_loss1)
+            train_loss.append(loss_epoch/len(train_loader))
+            print("Test_epoch: {} Test_accuracy: {:.4}% Test_Loss: {:.6f}".format(epoch+1,accTop1,test_loss1))
+            save_model = accTop1 > current_accuracy
+            accTop1 = max(current_accuracy,accTop1)
+            current_accuracy = accTop1
+            print("Best Accu = %f" % current_accuracy)
+        
+        #Check li0 Every Epoch!
+        for i in range(len(li0_dat)) :
+            for j in range(len(li0_dat[i][0])):
+                if (li0_dat[i][0][j] > 0.7 or li0_dat[i][0][j] < 0 - 0.7) and GrowChooser.decider() :
                         #Found this Nerve so tired
                         need_rst_optim = True
                         totalAddCells += 1
@@ -130,10 +142,10 @@ if __name__ == '__main__' :
                             model.li0_group[len(model.li0_group)-1].zero_grad()
                             print('Append to Linear 0, now %d layers' % len(model.li0_group))
 
-            #Check li1!
-            for i in range(len(li1_dat)) :
-                for j in range(len(li1_dat[i][0])):
-                    if li1_dat[i][0][j] > 0.7 or li1_dat[i][0][j] < 0 - 0.7 :
+        #Check li1!
+        for i in range(len(li1_dat)) :
+            for j in range(len(li1_dat[i][0])):
+                if (li1_dat[i][0][j] > 0.7 or li1_dat[i][0][j] < 0 - 0.7) and GrowChooser.decider() :
                         #Found this Nerve so tired
                         need_rst_optim = True
                         totalAddCells += 1
@@ -175,10 +187,10 @@ if __name__ == '__main__' :
                             model.li1_group[len(model.li1_group)-1].bias = nn.Parameter(torch.tensor(new_bias))
                             model.li1_group[len(model.li1_group)-1].zero_grad()
                             print('Append to Linear 1, now %d layers' % len(model.li1_group))
-            #Check li2!
-            for i in range(len(li2_dat)) :
-                for j in range(len(li2_dat[i][0])):
-                    if li2_dat[i][0][j] > 0.7 or li2_dat[i][0][j] < 0 - 0.7 :
+        #Check li2!
+        for i in range(len(li2_dat)) :
+            for j in range(len(li2_dat[i][0])):
+                if (li2_dat[i][0][j] > 0.7 or li2_dat[i][0][j] < 0 - 0.7) and GrowChooser.decider() :
                         #Found this Nerve so tired
                         need_rst_optim = True
                         totalAddCells += 1
@@ -220,31 +232,9 @@ if __name__ == '__main__' :
                             model.li2_group[len(model.li2_group)-1].bias = nn.Parameter(torch.tensor(new_bias))
                             model.li2_group[len(model.li2_group)-1].zero_grad()
                             print('Append to Linear 2, now %d layers' % len(model.li2_group))
-            if need_rst_optim:
+        
+        if need_rst_optim:
+                print('Reseting Optimizer')
                 optimizer = optim.SGD(getModelPara(model), lr=config.lr, momentum=0.9, weight_decay=config.weight_decay)
-                optimizer.zero_grad()
-            if (index+1) % 10 == 0:
-                print("Epoch: {} [{:>3d}/{}]\t Loss: {:.6f} ".format(epoch+1,index*config.batch_size,len(train_loader.dataset),loss.item()))
-                print("Total added " + str(totalAddCells) + " cells")
-        if (epoch+1) % 1 ==0:
-            print("\n------ Evaluate ------")
-            model.eval()
-            # evaluate the model on the test data
-            test_loss1, accTop1 = evaluate(test_loader,model,criterion)
-            acc.append(accTop1)
-            print("type(accTop1) =",type(accTop1))
-            test_loss.append(test_loss1)
-            train_loss.append(loss_epoch/len(train_loader))
-            print("Test_epoch: {} Test_accuracy: {:.4}% Test_Loss: {:.6f}".format(epoch+1,accTop1,test_loss1))
-            save_model = accTop1 > current_accuracy
-            accTop1 = max(current_accuracy,accTop1)
-            current_accuracy = accTop1
-            print("Best Accu = %f" % current_accuracy)
-            save_checkpoint({
-                "epoch": epoch + 1,
-                "model_name": config.model_name,
-                "state_dict": model.state_dict(),
-                "accTop1": current_accuracy,
-                "optimizer": optimizer.state_dict(),
-            }, save_model)
+    
     open('finish.txt','w').write(str(accTop1/100))

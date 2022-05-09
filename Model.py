@@ -27,6 +27,7 @@ class myModel(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.relu = nn.ReLU(True)
         self.softmax = nn.Softmax()
+        self.activate = self.relu
         self.li0_group = []
         self.li1_group = []
         self.li2_group = []
@@ -76,7 +77,7 @@ class myModel(nn.Module):
         #Ready to 0th Linear
         for i in range(len(self.li0_group)) :
             li0_dat.append(self.li0_group[i].cuda()(x))
-            li0_dat[i] = self.sigmoid(li0_dat[i])
+            li0_dat[i] = self.activate(li0_dat[i])
             if i == 0 :
                 y = li0_dat[i]
             else :
@@ -85,7 +86,7 @@ class myModel(nn.Module):
         #Ready to 1th Linear
         for i in range(len(self.li1_group)) :
             li1_dat.append(self.li1_group[i].cuda()(x))
-            li1_dat[i] = self.sigmoid(li1_dat[i])
+            li1_dat[i] = self.activate(li1_dat[i])
             if i == 0 :
                 y = li1_dat[i]
             else :
@@ -94,7 +95,7 @@ class myModel(nn.Module):
         #Ready to 2th Linear
         for i in range(len(self.li2_group)) :
             li2_dat.append(self.li2_group[i].cuda()(x))
-            li2_dat[i] = self.sigmoid(li2_dat[i])
+            li2_dat[i] = self.activate(li2_dat[i])
             if i == 0 :
                 y = li2_dat[i]
             else :

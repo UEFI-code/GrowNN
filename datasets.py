@@ -39,7 +39,7 @@ def get_files(file_dir,ratio):
     temp = np.array([image_list, labels_list]).transpose()
     np.random.shuffle(temp)
     n_test = int(math.ceil(len(temp) * ratio))
-    test_data = temp[0:n_test]
+    test_data = temp[0:n_test,:]
     train_data = temp[n_test:-1,:]
     return test_data,train_data
 
@@ -83,7 +83,7 @@ class datasets(Dataset):
     def __len__(self):
         return self.len
 
-def collate_fn(batch): #表示如何将多个样本拼接成一个batch
+def collate_fn(batch):
     imgs = []
     label = []
     for i in batch:
@@ -91,8 +91,6 @@ def collate_fn(batch): #表示如何将多个样本拼接成一个batch
       label.append(i[1])
     return torch.stack(imgs, 0),label
 
-
-#用于调试代码
 if __name__ == '__main__':
     test_data,_ = get_files(config.data_folder,0.2)
     for i in (test_data):
