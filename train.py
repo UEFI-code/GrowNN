@@ -76,7 +76,6 @@ if __name__ == '__main__' :
             loss = criterion(output, target)
             loss.backward()
             optimizer.step()
-            model.ConsumeCallback()
             loss_epoch += loss.item()
             if (index+1) % 10 == 0:
                 print("Epoch: {} [{:>3d}/{}]\t Loss: {:.6f} ".format(epoch+1,index*config.batch_size,len(train_loader.dataset),loss.item()))

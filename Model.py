@@ -129,30 +129,22 @@ class myModel(nn.Module):
         remain = self.quota_li0 - self.consume_li0
         activate_ratio = self.relu(remain / self.quota_li0)
         x = x * activate_ratio
-        self.consume_li0_new = self.consume_li0 + x - self.resume_li0
-        self.consume_li0_new = self.relu(self.consume_li0_new)
+        self.consume_li0 += x - self.resume_li0
+        self.consume_li0 = self.relu(self.consume_li0).detach()
         return x
 
     def li1Tiring(self, x):
         remain = self.quota_li1 - self.consume_li1
         activate_ratio = self.relu(remain / self.quota_li1)
         x = x * activate_ratio
-        self.consume_li1_new = self.consume_li1 + x - self.resume_li1
-        self.consume_li1_new = self.relu(self.consume_li1_new)
+        self.consume_li1 += x - self.resume_li1
+        self.consume_li1 = self.relu(self.consume_li1).detach()
         return x
 
     def li2Tiring(self, x):
         remain = self.quota_li2 - self.consume_li2
         activate_ratio = self.relu(remain / self.quota_li2)
         x = x * activate_ratio
-        self.consume_li2_new = self.consume_li2 + x - self.resume_li2
-        self.consume_li2_new = self.relu(self.consume_li2_new)
+        self.consume_li2 += x - self.resume_li2
+        self.consume_li2 = self.relu(self.consume_li2).detach()
         return x
-
-    def ConsumeCallback(self):
-        self.consume_li0 = self.consume_li0_new.detach()
-        self.consume_li1 = self.consume_li1_new.detach()
-        self.consume_li2 = self.consume_li2_new.detach()
-        return
-        
-
