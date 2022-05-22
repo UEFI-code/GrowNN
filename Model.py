@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torchvision
 from torch import nn,optim
+from config import config
+
 class myModel(nn.Module):
     def __init__(self):
         super(myModel,self).__init__()
@@ -35,6 +37,15 @@ class myModel(nn.Module):
         self.li1_group.append(nn.Linear(128,128))
         self.li2_group.append(nn.Linear(128,128))
         self.li3 = nn.Linear(128,4)
+        self.quota_li0 = torch.ones(config.batch_size, 128).cuda() * 10
+        self.consume_li0 = torch.zeros(config.batch_size, 128).cuda()
+        self.resume_li0 = torch.ones(config.batch_size, 128).cuda() * 1.2
+        self.quota_li1 = torch.ones(config.batch_size, 128).cuda() * 10
+        self.consume_li1 = torch.zeros(config.batch_size, 128).cuda()
+        self.resume_li1 = torch.ones(config.batch_size, 128).cuda() * 1.2
+        self.quota_li2 = torch.ones(config.batch_size, 128).cuda() * 10
+        self.consume_li2 = torch.zeros(config.batch_size, 128).cuda()
+        self.resume_li2 = torch.ones(config.batch_size, 128).cuda() * 1.2
         '''
         #init
         exp_weight = self.li0_group[0].weight.tolist()
@@ -82,7 +93,10 @@ class myModel(nn.Module):
                 y = li0_dat[i]
             else :
                 y = y + li0_dat[i]
-        x = y
+        try:
+            x = self.li0Tiring(y)
+        except:
+            x = y
         #Ready to 1th Linear
         for i in range(len(self.li1_group)) :
             li1_dat.append(self.li1_group[i].cuda()(x))
@@ -91,7 +105,10 @@ class myModel(nn.Module):
                 y = li1_dat[i]
             else :
                 y = y + li1_dat[i]
-        x = y
+        try:
+            x = self.li1Tiring(y)
+        except:
+            x = y
         #Ready to 2th Linear
         for i in range(len(self.li2_group)) :
             li2_dat.append(self.li2_group[i].cuda()(x))
@@ -100,8 +117,42 @@ class myModel(nn.Module):
                 y = li2_dat[i]
             else :
                 y = y + li2_dat[i]
-        x = y
+        try:
+            x = self.li2Tiring(y)
+        except:
+            x = y
         x = self.li3(x)
         x = self.softmax(x)
         return x, li0_dat, li1_dat, li2_dat
+    
+    def li0Tiring(self, x):
+        remain = self.quota_li0 - self.consume_li0
+        activate_ratio = self.relu(remain / self.quota_li0)
+        x = x * activate_ratio
+        self.consume_li0_new = self.consume_li0 + x - self.resume_li0
+        self.consume_li0_new = self.relu(self.consume_li0_new)
+        return x
+
+    def li1Tiring(self, x):
+        remain = self.quota_li1 - self.consume_li1
+        activate_ratio = self.relu(remain / self.quota_li1)
+        x = x * activate_ratio
+        self.consume_li1_new = self.consume_li1 + x - self.resume_li1
+        self.consume_li1_new = self.relu(self.consume_li1_new)
+        return x
+
+    def li2Tiring(self, x):
+        remain = self.quota_li2 - self.consume_li2
+        activate_ratio = self.relu(remain / self.quota_li2)
+        x = x * activate_ratio
+        self.consume_li2_new = self.consume_li2 + x - self.resume_li2
+        self.consume_li2_new = self.relu(self.consume_li2_new)
+        return x
+
+    def ConsumeCallback(self):
+        self.consume_li0 = self.consume_li0_new.detach()
+        self.consume_li1 = self.consume_li1_new.detach()
+        self.consume_li2 = self.consume_li2_new.detach()
+        return
+        
 
