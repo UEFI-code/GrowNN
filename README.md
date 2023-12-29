@@ -11,5 +11,3 @@ Still need more biology and computer-side experiment.
 ## Credit: 
 
 SuperHacker UEFI (Shizhuo Zhang)
-
-Cookie (Yue Fang)
